@@ -1,0 +1,83 @@
+name: "🔀 PR Merged — Close Issues & Update Kanban"
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  pr-merged-cleanup:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Extract linked issues from PR body
+        id: linked
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            // Cherche les patterns: Closes #N, Fixes #N, Resolves #N
+            const patterns = /(?:closes|fixes|resolves)\s+#(\d+)/gi;
+            const matches = [...body.matchAll(patterns)];
+            const issueNumbers = matches.map(m => parseInt(m[1]));
+            console.log('Issues liées trouvées:', issueNumbers);
+            core.setOutput('issues', JSON.stringify(issueNumbers));
+            return issueNumbers;
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = JSON.parse('${{ steps.linked.outputs.issues }}' || '[]');
+            const issueLinks = issues.map(n => `#${n}`).join(', ');
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: `🎉 **PR Mergée !**\n\n${issues.length > 0 
+                ? `Issues fermées automatiquement : ${issueLinks}` 
+                : '⚠️ Aucune issue liée trouvée dans le corps de la PR. Pensez à utiliser \`Closes #N\`.'
+              }`
+            });
+
+      - name: Add merge label to linked issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = JSON.parse('${{ steps.linked.outputs.issues }}' || '[]');
+            
+            for (const issueNumber of issues) {
+              try {
+                // Ajouter label merged
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: ['status:merged']
+                });
+
+                // Commenter sur l'issue
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: `🔀 **PR #${{ github.event.pull_request.number }} mergée** — Cette issue a été résolue.\n> Branch: \`${{ github.event.pull_request.head.ref }}\` → \`${{ github.event.pull_request.base.ref }}\``
+                });
+
+                console.log(`✅ Issue #${issueNumber} traitée`);
+              } catch (e) {
+                console.error(`Erreur issue #${issueNumber}:`, e.message);
+              }
+            }
+
+      - name: Notify if no linked issues
+        if: steps.linked.outputs.issues == '[]'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            console.warn('⚠️ PR mergée sans issues liées détectées.');
+            // Optionnel : créer une issue de suivi

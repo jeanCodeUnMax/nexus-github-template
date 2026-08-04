@@ -1,0 +1,85 @@
+name: "🤖 Agent Dispatch — On Label"
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  dispatch-agent:
+    # Déclenché uniquement si le label commence par "agent:"
+    if: startsWith(github.event.label.name, 'agent:')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract agent type
+        id: agent
+        run: |
+          LABEL="${{ github.event.label.name }}"
+          AGENT_TYPE="${LABEL#agent:}"
+          echo "type=$AGENT_TYPE" >> $GITHUB_OUTPUT
+          echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          echo "issue_title=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
+
+      - name: Log dispatch
+        run: |
+          echo "🤖 Agent demandé : ${{ steps.agent.outputs.type }}"
+          echo "📋 Issue : #${{ steps.agent.outputs.issue_number }} — ${{ steps.agent.outputs.issue_title }}"
+
+      # ─── Branche COLAB ───────────────────────────────────────────────────
+      - name: Dispatch to Google Colab
+        if: steps.agent.outputs.type == 'colab'
+        run: |
+          curl -s -X POST "${{ secrets.COLAB_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "issue_number": "${{ steps.agent.outputs.issue_number }}",
+              "issue_title": "${{ steps.agent.outputs.issue_title }}",
+              "repo": "${{ github.repository }}",
+              "agent": "colab"
+            }'
+          echo "✅ Colab webhook envoyé"
+
+      # ─── Branche DOCKER ──────────────────────────────────────────────────
+      - name: Dispatch to Docker container
+        if: steps.agent.outputs.type == 'docker'
+        run: |
+          curl -s -X POST "${{ secrets.DOCKER_WEBHOOK_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.DOCKER_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "issue_number": "${{ steps.agent.outputs.issue_number }}",
+              "issue_title": "${{ steps.agent.outputs.issue_title }}",
+              "repo": "${{ github.repository }}",
+              "agent": "docker"
+            }'
+          echo "✅ Docker webhook envoyé"
+
+      # ─── Branche PLAN (Claude/AI planning) ───────────────────────────────
+      - name: Dispatch to AI Planner
+        if: steps.agent.outputs.type == 'plan'
+        run: |
+          curl -s -X POST "${{ secrets.AI_PLANNER_WEBHOOK_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.AI_PLANNER_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "issue_number": "${{ steps.agent.outputs.issue_number }}",
+              "issue_body": ${{ toJson(github.event.issue.body) }},
+              "repo": "${{ github.repository }}"
+            }'
+          echo "✅ AI Planner webhook envoyé"
+
+      # ─── Commentaire de confirmation sur l'issue ──────────────────────────
+      - name: Comment on issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const agentType = '${{ steps.agent.outputs.type }}';
+            const emojis = { colab: '📓', docker: '🐳', plan: '🧠', build: '🔨', test: '🧪' };
+            const emoji = emojis[agentType] || '🤖';
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.agent.outputs.issue_number }},
+              body: `${emoji} **Agent \`${agentType}\` déclenché** via label \`agent:${agentType}\`\n\n> Workflow: \`01-agent-on-label.yml\` • Run: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`
+            });

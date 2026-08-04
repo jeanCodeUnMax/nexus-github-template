@@ -1,0 +1,65 @@
+name: "✅ Task"
+description: "Tâche concrète rattachée à une Feature"
+title: "[TASK] "
+labels: ["task", "scope:execution"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✅ Task — Tâche exécutable
+        Une Task est atomique : elle doit pouvoir être complétée en 1 session de travail.
+
+  - type: input
+    id: parent_feature
+    attributes:
+      label: "Feature parente"
+      placeholder: "#numéro_de_la_feature"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description détaillée"
+      placeholder: "Qu'est-ce qui doit être fait exactement ?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Étapes"
+      placeholder: |
+        1. Étape 1
+        2. Étape 2
+        3. Étape 3
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Définition of Done"
+      placeholder: |
+        - [ ] Code écrit
+        - [ ] Tests passants
+        - [ ] PR créée
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: "Complexité estimée"
+      options:
+        - "XS (< 1h)"
+        - "S (1-2h)"
+        - "M (2-4h)"
+        - "L (4-8h)"
+        - "XL (> 8h → découper)"
+    validations:
+      required: true
+
+  - type: input
+    id: agent_trigger
+    attributes:
+      label: "Label agent à déclencher (optionnel)"
+      placeholder: "ex: agent:colab, agent:docker"

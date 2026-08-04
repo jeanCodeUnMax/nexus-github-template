@@ -1,0 +1,55 @@
+name: "🚀 Epic"
+description: "Objectif majeur regroupant plusieurs features"
+title: "[EPIC] "
+labels: ["epic", "scope:planning"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 Epic — Objectif stratégique
+        Une Epic représente un objectif majeur. Elle ne se ferme que quand toutes ses Features sont Done.
+
+  - type: input
+    id: goal
+    attributes:
+      label: "Objectif principal"
+      placeholder: "En une phrase : quel problème cette Epic résout-elle ?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Critères d'acceptation"
+      description: "Quand peut-on considérer cette Epic comme terminée ?"
+      placeholder: |
+        - [ ] Critère 1
+        - [ ] Critère 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: features
+    attributes:
+      label: "Features associées (à remplir au fil du projet)"
+      placeholder: |
+        - [ ] #issue_number — Feature A
+        - [ ] #issue_number — Feature B
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Priorité"
+      options:
+        - "🔴 Critical"
+        - "🟠 High"
+        - "🟡 Medium"
+        - "🟢 Low"
+    validations:
+      required: true
+
+  - type: input
+    id: agent_trigger
+    attributes:
+      label: "Label agent à déclencher (optionnel)"
+      placeholder: "ex: agent:plan, agent:scaffold"
