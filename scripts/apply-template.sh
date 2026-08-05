@@ -111,8 +111,34 @@ Applied from: nexus-github-template"
 git push origin HEAD
 log_info "Push effectué"
 
-# ── 5. Instructions post-install ──────────────────────────────────────────────
-log_section "Étape 5/5 : Configuration requise"
+# ── 5. Tentative de création automatique du ProjectV2 (Kanban) ───────────────
+log_section "Étape 5/6 : Création automatique du GitHub ProjectV2 (Kanban)"
+
+OWNER=$(echo "$TARGET_REPO" | cut -d/ -f1)
+REPO=$(echo "$TARGET_REPO" | cut -d/ -f2)
+REPO_NODE_ID=$(gh api repos/$OWNER/$REPO --jq '.node_id' 2>/dev/null || true)
+
+if [[ -n "$REPO_NODE_ID" ]]; then
+  log_info "Node ID du repo: $REPO_NODE_ID"
+  PROJECT_TITLE="NEXUS Board"
+  # Mutation GraphQL pour créer un ProjectV2 (peut échouer selon permissions / token)
+  create_mutation="mutation { createProjectV2(input:{ownerId:\"$REPO_NODE_ID\", title:\"$PROJECT_TITLE\", shortDescription:\"Kanban NEXUS automatisé\"}) { projectV2 { id url } } }"
+  resp=$(gh api graphql -f query="$create_mutation" 2>/dev/null || true)
+  project_url=$(echo "$resp" | grep -o 'https://github.com/[^\\\"]*' | head -n1 || true)
+
+  if [[ -n "$project_url" ]]; then
+    log_info "ProjectV2 créé : $project_url"
+    log_info "Remarque : ajoutez (via l'UI ou API) un champ single-select nommé 'Status' avec les options : Backlog, Ready, In Progress, Review, Done"
+  else
+    log_warn "La création automatique du ProjectV2 a échoué (API GraphQL)."
+    log_warn "Créez manuellement un ProjectV2 ici : https://github.com/$TARGET_REPO/projects"
+  fi
+else
+  log_warn "Impossible de récupérer node_id du repo. Créez manuellement le ProjectV2 : https://github.com/$TARGET_REPO/projects"
+fi
+
+# ── 6. Instructions post-install ──────────────────────────────────────────────
+log_section "Étape 6/6 : Configuration requise"
 
 cat << EOF
 
@@ -120,17 +146,18 @@ ${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━�
 ${GREEN}🎉 NEXUS Template installé sur $TARGET_REPO${NC}
 ${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}
 
-${BLUE}Actions manuelles restantes :${NC}
+${BLUE}Actions manuelles restantes (si non faites automatiquement) :${NC}
 
-1. ${YELLOW}Créer le GitHub Project (Kanban)${NC}
-   → Aller sur : https://github.com/$TARGET_REPO/projects
-   → New project → Board
-   → Colonnes : Backlog | Ready | In Progress | Review | Done
+1. ${YELLOW}Vérifier le GitHub Project (Kanban)${NC}
+   → Si le script a créé le ProjectV2, ouvrez : $project_url
+   → Sinon : https://github.com/$TARGET_REPO/projects
+   → Créez (ou vérifiez) un champ single-select nommé ${GREEN}'Status'${NC}
+     • Valeurs recommandées : Backlog | Ready | In Progress | Review | Done
 
 2. ${YELLOW}Ajouter les Secrets GitHub Actions${NC}
    → Aller sur : https://github.com/$TARGET_REPO/settings/secrets/actions
    → Ajouter :
-     • NEXUS_PAT          — Personal Access Token (read:project)
+     • NEXUS_PAT          — Personal Access Token (scopes: repo, read:project)
      • COLAB_WEBHOOK_URL  — URL de votre webhook Colab
      • DOCKER_WEBHOOK_URL — URL de votre webhook Docker
      • DOCKER_WEBHOOK_TOKEN

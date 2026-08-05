@@ -1,0 +1,46 @@
+name: "🔁 Issue Label → Kanban Sync"
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  sync-to-kanban:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Sync label to ProjectV2 Status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.NEXUS_PAT }}
+          script: |
+            const labelName = context.payload.label?.name || '';
+            if (!labelName || !labelName.startsWith('status:')) return;
+            const statusValue = labelName.split(':').slice(1).join(':').trim();
+            const issueNumber = context.payload.issue.number;
+
+            // Query project items linked to the issue and find Status field
+            const query = `query($owner:String!, $repo:String!, $number:Int!){ repository(owner:$owner, name:$repo){ issue(number:$number){ projectItems(first:50){ nodes{ id project{ id fields(first:50){ nodes{ ... on ProjectV2SingleSelectField { id name options(first:50){ id name } } } } } } } } }`;
+
+            const res = await github.graphql(query, { owner: context.repo.owner, repo: context.repo.repo, number: issueNumber });
+            const nodes = res.repository.issue.projectItems?.nodes || [];
+
+            for (const item of nodes) {
+              const fields = item.project.fields.nodes || [];
+              const statusField = fields.find(f => f.name === 'Status');
+              if (!statusField) continue;
+
+              const option = statusField.options.nodes.find(o => o.name.toLowerCase() === statusValue.toLowerCase());
+              if (!option) {
+                console.warn(`Option for Status not found: ${statusValue}`);
+                continue;
+              }
+
+              const mutation = `mutation($itemId:ID!,$fieldId:ID!,$optionId:ID!){ updateProjectV2ItemFieldValue(input:{projectId:\"${item.project.id}\", itemId:$itemId, fieldId:$fieldId, value:{singleSelectOptionId:$optionId}}){ projectV2Item { id } } }`;
+
+              await github.graphql(mutation, { itemId: item.id, fieldId: statusField.id, optionId: option.id });
+              console.log(`Updated project item ${item.id} -> ${option.name}`);
+            }

@@ -34,6 +34,19 @@ gh auth login
 ./scripts/apply-template.sh TON_USER/TON_REPO
 ```
 
+## Projet Kanban créé automatiquement
+Le script d'installation tente de créer un GitHub Project (ProjectV2) nommé `NEXUS Board` dans le compte propriétaire. Si la création automatique a réussi, vérifiez :
+
+- Lien du projet (exemple) : https://github.com/users/jeanCodeUnMax/projects/10
+
+Actions manuelles restantes :
+
+1. Vérifier (ou créer) un champ single-select nommé `Status` dans le ProjectV2.
+   - Valeurs recommandées : `Backlog`, `Ready`, `In Progress`, `Review`, `Done`.
+2. Ajouter les secrets GitHub Actions (voir ci‑dessous).
+
+> Remarque : la création complète du champ `Status` via API peut nécessiter des permissions supplémentaires ; le script affiche une notice si la création automatique échoue.
+
 ## Secrets requis
 
 | Secret | Usage |
@@ -53,3 +66,30 @@ gh auth login
 | Commentaire | `/run-agent colab` |
 | Déplacement Kanban | Carte → "In Progress" |
 | PR mergée | Fermeture automatique des issues liées |
+
+## Labels d'agents disponibles
+
+La liste des labels `agent:*` fournis par ce template (utilisés pour déclencher des agents via labels ou `/run-agent`):
+
+- `agent:antigravity` — Déclenche Antigravity / IDE agent
+- `agent:colab` — Déclenche Google Colab
+- `agent:docker` — Déclenche container Docker
+- `agent:plan` — Déclenche AI Planner
+- `agent:build` — Déclenche build automatique
+- `agent:test` — Déclenche suite de tests
+- `agent:documentalist` — Déclenche agent documentaliste / génération de docs
+- `agent:brainstorm` — Déclenche session de brainstorming AI
+- `agent:front` — Agent développeur front-end
+- `agent:back` — Agent développeur back-end
+- `agent:architect` — Agent architecte logiciel
+- `agent:audit` — Agent audit / revue de sécurité
+- `agent:test-unitaire` — Agent pour générer/runner tests unitaires
+- `agent:pseudo-code` — Génère pseudo-code ou algorithme
+- `agent:annalyste` — Agent analyste (business / data)
+- `agent:scrapping` — Agent de scraping / collecte de données
+- `agent:debug` — Agent d'aide au debugging
+- `agent:copywriters` — Agent copywriting / contenu
+- `agent:kaagle` — Déclenche agent Kaggle/expérimentation
+- `agent:etude-du-marcher` — Étude de marché / veille
+
+Ajoute d'autres labels `agent:*` si nécessaire en ouvrant une issue ou via `./scripts/apply-template.sh`.
