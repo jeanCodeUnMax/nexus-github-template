@@ -34,6 +34,19 @@ gh auth login
 ./scripts/apply-template.sh TON_USER/TON_REPO
 ```
 
+## Projet Kanban créé automatiquement
+Le script d'installation tente de créer un GitHub Project (ProjectV2) nommé `NEXUS Board` dans le compte propriétaire. Si la création automatique a réussi, vérifiez :
+
+- Lien du projet (exemple) : https://github.com/users/jeanCodeUnMax/projects/10
+
+Actions manuelles restantes :
+
+1. Vérifier (ou créer) un champ single-select nommé `Status` dans le ProjectV2.
+   - Valeurs recommandées : `Backlog`, `Ready`, `In Progress`, `Review`, `Done`.
+2. Ajouter les secrets GitHub Actions (voir ci‑dessous).
+
+> Remarque : la création complète du champ `Status` via API peut nécessiter des permissions supplémentaires ; le script affiche une notice si la création automatique échoue.
+
 ## Secrets requis
 
 | Secret | Usage |
