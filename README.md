@@ -66,3 +66,30 @@ Actions manuelles restantes :
 | Commentaire | `/run-agent colab` |
 | Déplacement Kanban | Carte → "In Progress" |
 | PR mergée | Fermeture automatique des issues liées |
+
+## Labels d'agents disponibles
+
+La liste des labels `agent:*` fournis par ce template (utilisés pour déclencher des agents via labels ou `/run-agent`):
+
+- `agent:antigravity` — Déclenche Antigravity / IDE agent
+- `agent:colab` — Déclenche Google Colab
+- `agent:docker` — Déclenche container Docker
+- `agent:plan` — Déclenche AI Planner
+- `agent:build` — Déclenche build automatique
+- `agent:test` — Déclenche suite de tests
+- `agent:documentalist` — Déclenche agent documentaliste / génération de docs
+- `agent:brainstorm` — Déclenche session de brainstorming AI
+- `agent:front` — Agent développeur front-end
+- `agent:back` — Agent développeur back-end
+- `agent:architect` — Agent architecte logiciel
+- `agent:audit` — Agent audit / revue de sécurité
+- `agent:test-unitaire` — Agent pour générer/runner tests unitaires
+- `agent:pseudo-code` — Génère pseudo-code ou algorithme
+- `agent:annalyste` — Agent analyste (business / data)
+- `agent:scrapping` — Agent de scraping / collecte de données
+- `agent:debug` — Agent d'aide au debugging
+- `agent:copywriters` — Agent copywriting / contenu
+- `agent:kaagle` — Déclenche agent Kaggle/expérimentation
+- `agent:etude-du-marcher` — Étude de marché / veille
+
+Ajoute d'autres labels `agent:*` si nécessaire en ouvrant une issue ou via `./scripts/apply-template.sh`.
