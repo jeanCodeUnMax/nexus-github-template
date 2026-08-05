@@ -49,7 +49,7 @@ jobs:
         with:
           script: |
             const issues = JSON.parse('${{ steps.linked.outputs.issues }}' || '[]');
-            
+
             for (const issueNumber of issues) {
               try {
                 // Ajouter label merged
@@ -67,6 +67,56 @@ jobs:
                   issue_number: issueNumber,
                   body: `🔀 **PR #${{ github.event.pull_request.number }} mergée** — Cette issue a été résolue.\n> Branch: \`${{ github.event.pull_request.head.ref }}\` → \`${{ github.event.pull_request.base.ref }}\``
                 });
+
+                // Tentative de mise à jour du ProjectV2 (champ 'Status' → 'Done') si présent
+                try {
+                  const query = `
+                    query($owner:String!, $repo:String!, $number:Int!) {
+                      repository(owner:$owner, name:$repo) {
+                        issue(number:$number) {
+                          projectItems(first:10) {
+                            nodes {
+                              id
+                              project { id fields(first:20) {
+                                nodes {
+                                  ... on ProjectV2SingleSelectField { id name options(first:50) { id name } }
+                                }
+                              } }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  `;
+
+                  const res = await github.graphql(query, { owner: context.repo.owner, repo: context.repo.repo, number: issueNumber });
+                  const nodes = res.repository.issue.projectItems?.nodes || [];
+
+                  for (const item of nodes) {
+                    const fields = item.project.fields.nodes || [];
+                    const statusField = fields.find(f => f.name === 'Status');
+                    if (!statusField) continue;
+
+                    const option = statusField.options.nodes.find(o => o.name.toLowerCase() === 'done' || o.name.toLowerCase() === 'finished');
+                    if (!option) {
+                      console.warn('Aucune option "Done" trouvée pour le champ Status du projet', item.project.id);
+                      continue;
+                    }
+
+                    const mutation = `
+                      mutation($itemId:ID!,$fieldId:ID!,$optionId:ID!) {
+                        updateProjectV2ItemFieldValue(input:{projectId:\"${item.project.id}\", itemId:$itemId, fieldId:$fieldId, value:{singleSelectOptionId:$optionId}}) {
+                          projectV2Item { id }
+                        }
+                      }
+                    `;
+
+                    await github.graphql(mutation, { itemId: item.id, fieldId: statusField.id, optionId: option.id });
+                    console.log(`✅ Project item ${item.id} mis à jour vers Done`);
+                  }
+                } catch (innerErr) {
+                  console.warn('Impossible de mettre à jour ProjectV2:', innerErr.message || innerErr);
+                }
 
                 console.log(`✅ Issue #${issueNumber} traitée`);
               } catch (e) {
