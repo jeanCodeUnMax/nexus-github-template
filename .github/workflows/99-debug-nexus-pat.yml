@@ -1,0 +1,28 @@
+name: "🛠 Debug NEXUS_PAT Access"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-token:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Check GraphQL access with NEXUS_PAT
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.NEXUS_PAT }}
+          script: |
+            try {
+              const query = `query { viewer { login projectsV2(first:10) { nodes { id title url } } } }`;
+              const res = await github.graphql(query);
+              const body = 'NEXUS_PAT GraphQL query result:\n\n' + JSON.stringify(res, null, 2);
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title: `DEBUG: NEXUS_PAT check - ${new Date().toISOString()}`, body });
+              core.info('Created debug issue with GraphQL result');
+            } catch (e) {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title: `DEBUG: NEXUS_PAT error - ${new Date().toISOString()}`, body: String(e.message || e) });
+              core.setFailed(e.message);
+            }
