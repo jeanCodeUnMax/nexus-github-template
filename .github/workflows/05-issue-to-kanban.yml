@@ -12,7 +12,22 @@ jobs:
       contents: read
 
     steps:
+      - name: Fail fast if NEXUS_PAT missing
+        if: ${{ secrets.NEXUS_PAT == '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Kanban sync skipped - missing NEXUS_PAT`,
+              body: `The workflow attempted to sync issue labels to ProjectV2 but the repository secret NEXUS_PAT is not configured. Please add a token with scopes: repo + read:project as the secret NEXUS_PAT.`
+            });
+            core.setFailed('NEXUS_PAT not configured');
+
       - name: Sync label to ProjectV2 Status
+        if: ${{ secrets.NEXUS_PAT != '' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.NEXUS_PAT }}
