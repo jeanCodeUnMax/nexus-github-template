@@ -19,41 +19,57 @@ jobs:
           github-token: ${{ secrets.NEXUS_PAT }}
           script: |
             const itemId = context.payload.projects_v2_item.node_id;
-            const query = `
-              query($nodeId: ID!) {
-                node(id: $nodeId) {
-                  ... on ProjectV2Item {
-                    content {
-                      ... on Issue {
-                        number
-                        title
-                        labels(first: 10) { nodes { name } }
+            try {
+              const query = `
+                query($nodeId: ID!) {
+                  node(id: $nodeId) {
+                    ... on ProjectV2Item {
+                      content {
+                        ... on Issue {
+                          number
+                          title
+                          labels(first: 10) { nodes { name } }
+                        }
                       }
-                    }
-                    fieldValues(first: 10) {
-                      nodes {
-                        ... on ProjectV2ItemFieldSingleSelectValue {
-                          name
-                          field { ... on ProjectV2SingleSelectField { name } }
+                      fieldValues(first: 10) {
+                        nodes {
+                          ... on ProjectV2ItemFieldSingleSelectValue {
+                            name
+                            field { ... on ProjectV2SingleSelectField { name } }
+                          }
                         }
                       }
                     }
                   }
                 }
+              `;
+
+              const result = await github.graphql(query, { nodeId: itemId });
+              const item = result.node;
+              const statusField = item.fieldValues.nodes.find(
+                f => f.field?.name === 'Status'
+              );
+              const status = statusField?.name || 'Unknown';
+              const issue = item.content;
+
+              core.setOutput('status', status);
+              core.setOutput('issue_number', issue?.number || '');
+              core.setOutput('issue_title', issue?.title || '');
+              return { status, issue };
+            } catch (e) {
+              // Create an issue to notify maintainers and fail the workflow with a clear message
+              const owner = context.repo.owner;
+              const repo = context.repo.repo;
+              const title = `Kanban automation error on project item ${itemId}`;
+              const body = `Error while running kanban automation workflow for project item ${itemId}:\n\n${e.message}\n\nPlease verify that the repository secret NEXUS_PAT is set and has the scope 'read:project'.`;
+              try {
+                await github.rest.issues.create({ owner, repo, title, body });
+                core.error('Error detected — created an issue to notify maintainers.');
+              } catch (createErr) {
+                core.error('Failed to create notification issue: ' + (createErr.message || createErr));
               }
-            `;
-            const result = await github.graphql(query, { nodeId: itemId });
-            const item = result.node;
-            const statusField = item.fieldValues.nodes.find(
-              f => f.field?.name === 'Status'
-            );
-            const status = statusField?.name || 'Unknown';
-            const issue = item.content;
-            
-            core.setOutput('status', status);
-            core.setOutput('issue_number', issue?.number || '');
-            core.setOutput('issue_title', issue?.title || '');
-            return { status, issue };
+              core.setFailed(e.message);
+            }
 
       # ─── Quand carte → "In Progress" ────────────────────────────────────
       - name: Handle "In Progress"
