@@ -1,146 +1,16 @@
-name: "📋 Kanban Automation — On Project Move"
+name: Kanban Project Move Placeholder
 
 on:
-  projects_v2_item:
-    types: [edited]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  kanban-sync:
+  placeholder:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
-
     steps:
-      - name: Get project item details
-        id: item
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.NEXUS_PAT }}
-          script: |
-            const itemId = context.payload.projects_v2_item.node_id;
-            try {
-              const query = `
-                query($nodeId: ID!) {
-                  node(id: $nodeId) {
-                    ... on ProjectV2Item {
-                      content {
-                        ... on Issue {
-                          number
-                          title
-                          labels(first: 10) { nodes { name } }
-                        }
-                      }
-                      fieldValues(first: 10) {
-                        nodes {
-                          ... on ProjectV2ItemFieldSingleSelectValue {
-                            name
-                            field { ... on ProjectV2SingleSelectField { name } }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              `;
-
-              const result = await github.graphql(query, { nodeId: itemId });
-              const item = result.node;
-              const statusField = item.fieldValues.nodes.find(
-                f => f.field?.name === 'Status'
-              );
-              const status = statusField?.name || 'Unknown';
-              const issue = item.content;
-
-              core.setOutput('status', status);
-              core.setOutput('issue_number', issue?.number || '');
-              core.setOutput('issue_title', issue?.title || '');
-              return { status, issue };
-            } catch (e) {
-              // Create an issue to notify maintainers and fail the workflow with a clear message
-              const owner = context.repo.owner;
-              const repo = context.repo.repo;
-              const title = `Kanban automation error on project item ${itemId}`;
-              const body = `Error while running kanban automation workflow for project item ${itemId}:\n\n${e.message}\n\nPlease verify that the repository secret NEXUS_PAT is set and has the scope 'read:project'.`;
-              try {
-                await github.rest.issues.create({ owner, repo, title, body });
-                core.error('Error detected — created an issue to notify maintainers.');
-              } catch (createErr) {
-                core.error('Failed to create notification issue: ' + (createErr.message || createErr));
-              }
-              core.setFailed(e.message);
-            }
-
-      # ─── Quand carte → "In Progress" ────────────────────────────────────
-      - name: Handle "In Progress"
-        if: steps.item.outputs.status == 'In Progress'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issueNumber = parseInt('${{ steps.item.outputs.issue_number }}');
-            if (!issueNumber) return;
-            
-            // Ajouter label "in-progress"
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              labels: ['status:in-progress']
-            });
-
-            // Commenter
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: `▶️ **Démarré** — Cette issue a été déplacée vers **In Progress** dans le Kanban.`
-            });
-
-      # ─── Quand carte → "Review" ──────────────────────────────────────────
-      - name: Handle "Review"
-        if: steps.item.outputs.status == 'Review'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issueNumber = parseInt('${{ steps.item.outputs.issue_number }}');
-            if (!issueNumber) return;
-
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              labels: ['status:review']
-            });
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: `🔍 **En review** — Cette issue attend une validation. Assurez-vous qu'une PR est liée.`
-            });
-
-      # ─── Quand carte → "Done" ────────────────────────────────────────────
-      - name: Handle "Done"
-        if: steps.item.outputs.status == 'Done'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issueNumber = parseInt('${{ steps.item.outputs.issue_number }}');
-            if (!issueNumber) return;
-
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              labels: ['status:done']
-            });
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: `✅ **Done** — Issue marquée comme terminée depuis le Kanban.`
-            });
+      - name: Explain status
+        run: |
+          echo "ProjectV2 event automation is disabled in the base template."
+          echo "Issue/status synchronization remains available through explicit workflows."
