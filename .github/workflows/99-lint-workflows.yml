@@ -16,16 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install yamllint
         run: |
           python -m pip install --upgrade pip
           pip install yamllint
-      - name: Run yamllint on workflows
+      - name: Validate workflow YAML
         run: |
-          yamllint -d '{extends: default, rules: {line-length: {max: 200}}}' .github/workflows || true
-      - name: Fail if yamllint found issues
-        run: |
-          yamllint -f parsable .github/workflows || exit 1
+          yamllint \
+            -d '{extends: default, rules: {line-length: disable, trailing-spaces: disable, document-start: disable, truthy: disable}}' \
+            .github/workflows

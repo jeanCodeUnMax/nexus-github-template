@@ -1,0 +1,21 @@
+{
+  "issue": 19,
+  "subject": "greffier-protocol-gate-v1",
+  "request_summary": "Verify that the Git template can enforce the Greffier anti-amnesia protocol.",
+  "response_summary": "Install a deterministic pull-request gate and test it with positive and negative controls.",
+  "hypotheses": [
+    "A valid PR with issue linkage and a complete receipt should pass.",
+    "A PR without the receipt should fail."
+  ],
+  "analysis_summary": "The template already provides Git/Kanban orchestration but lacked a universal PR enforcement gate. This receipt records the controlled installation and test transaction.",
+  "conclusion": "Install and validate Greffier Protocol Gate V1 before treating the template as mechanically enforced.",
+  "verdict": "KEEP",
+  "evidence_refs": [
+    "issue:#19",
+    "pr:#20",
+    "protocol-tests/issue-19-greffier-dry-run.md"
+  ],
+  "blockers": [],
+  "revisit_conditions": [],
+  "relations": []
+}
