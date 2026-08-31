@@ -1,2 +1,14 @@
-name: "test2"
-on: [push]
+name: Agent Output To PR Placeholder
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain placeholder
+        run: echo "Agent output-to-PR automation is not active in this placeholder workflow."
