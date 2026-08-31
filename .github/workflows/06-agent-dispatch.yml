@@ -1,2 +1,14 @@
-name: "test"
-on: [push]
+name: Agent Dispatch Placeholder
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain placeholder
+        run: echo "Agent dispatch is handled by 01-agent-on-label.yml; this file remains as a valid manual placeholder."
